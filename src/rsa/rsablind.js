@@ -65,8 +65,10 @@ function blind({ message, key, N, E }) {
   };
 }
 
-function sign({ blinded, key }) {
-  const { N, D } = keyProperties(key);
+function sign({ blinded, key, N, D }) {
+  // const { N, D } = keyProperties(key);
+  N = key ? key.keyPair.n : new BigInteger(N.toString());
+  D = key ? key.keyPair.d : new BigInteger(D.toString());
   blinded = new BigInteger(blinded.toString());
   const signed = blinded.modPow(D, N);
   return signed;
@@ -120,6 +122,7 @@ export function genBigInteger(ss) {
 }
 
 export const BlindSignature = {
+  messageToHashInt,
   keyGeneration,
   messageToHash,
   blind,

@@ -40,3 +40,26 @@
 .read-the-docs {
   color: #888;
 }
+
+.ellipsis {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.blind-list {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 80vw;
+}
+
+.host-wrapper {
+  display: flex;
+  justify-content: space-between;
+}
+
+.host-wrapper>div{
+  max-width: 50%;
+}
