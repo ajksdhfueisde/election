@@ -78,7 +78,7 @@ const Host: FC<{ data?: IKeys, signCallback: () => void; pubKey: string }> = ({ 
             <div title={data?.blinded[key]} className="ellipsis">
               {data?.blinded[key]}
             </div>
-            <button disabled={!!data?.blinded[key]} onClick={() => onSign(key)}>
+            <button hidden={data?.isLock} disabled={!!data?.blinded[key]} onClick={() => onSign(key)}>
               Sign
             </button>
           </div>
