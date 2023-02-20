@@ -7,7 +7,7 @@ import { QRCodeCanvas } from "qrcode.react";
 let timer: any;
 let getData: any;
 
-const Host: FC<{ data?: IKeys }> = ({ data }) => {
+const Host: FC<{ data?: IKeys, signCallback: () => void; pubKey: string }> = ({ data, signCallback, pubKey }) => {
   const onSign = async (blinded: string, signed?: string) => {
     const cache = JSON.parse(localStorage.getItem("rsa") || "{}");
     const payload =
@@ -19,6 +19,7 @@ const Host: FC<{ data?: IKeys }> = ({ data }) => {
       singed: payload,
       privateKey: cache.D,
     });
+    signCallback();
   };
   const onSignAll = async () => {
     const allData = Object.keys(data?.blinded || {});
@@ -38,8 +39,9 @@ const Host: FC<{ data?: IKeys }> = ({ data }) => {
     });
   };
   return (
+    <>
     <div className="host-wrapper">
-      <div>
+      <div style={{border: "1px solid #333", padding: "8px", borderRadius: "5px"}}>
         <div>
           <button disabled={data?.isLock} onClick={() => onLock()}>
             Lock
@@ -57,7 +59,7 @@ const Host: FC<{ data?: IKeys }> = ({ data }) => {
           URL: {window.location.href}
         </a>
       </div>
-      <div>
+      <div  style={{border: "1px solid #333", padding: "8px", borderRadius: "5px"}}>
         <div>
           <b>Joiner: {Object.keys(data?.blinded || {}).length}</b>
           <button
@@ -83,6 +85,9 @@ const Host: FC<{ data?: IKeys }> = ({ data }) => {
         ))}
       </div>
     </div>
+      
+      {<MessageTable data={data?.messages} globalPubKey={pubKey} />}
+    </>
   );
 };
 
@@ -130,18 +135,11 @@ const Joiner: FC<{ data?: IKeys; roomRsa?: IRSA; pubKey: string }> = ({
       message,
       signedMessage,
     });
-    // const isLegal2 = BlindSignature.verify({
-    //   unblinded: signedMessage,
-    //   message,
-    //   E: "65537",
-    //   N: roomRsa?.N,
-    // });
-    // console.log({isLegal2, message, m1: BlindSignature.messageToHashInt(message).toString()})
   };
   return (
     <>
       <div className="host-wrapper">
-        <div>
+        <div style={{border: "1px solid #333", padding: "8px", borderRadius: "5px"}}>
           <button
             hidden={!!signed || data?.isLock}
             disabled={isJoined}
@@ -161,7 +159,7 @@ const Joiner: FC<{ data?: IKeys; roomRsa?: IRSA; pubKey: string }> = ({
             </details>
           </summary>
         </div>
-        <div>
+        <div style={{border: "1px solid #333", padding: "8px", borderRadius: "5px"}}>
           <div>
             <div>
               <b>Joiner: {Object.keys(data?.blinded || {}).length}</b>
@@ -179,8 +177,8 @@ const Joiner: FC<{ data?: IKeys; roomRsa?: IRSA; pubKey: string }> = ({
           </div>
         </div>
       </div>
-      {isSignedSuccessfully && <div>
-        <textarea value={message} onChange={evt => setMessage(evt.target.value)} placeholder="Please input your message" />
+      {isSignedSuccessfully && <div style={{border: "1px solid #333", padding: "8px", borderRadius: "5px", margin: "10px 0"}}>
+        <textarea maxLength={1000} rows={6} cols={40} style={{padding: "8px", textSizeAdjust: "none", resize: "none"}} value={message} onChange={evt => setMessage(evt.target.value)} placeholder="Please input your message" />
         <button disabled={!message} type="submit" onClick={() => onSubmit()}>Submit</button>
       </div>}
       {<MessageTable data={data?.messages} globalPubKey={pubKey} />}
@@ -210,12 +208,19 @@ const MessageTable: FC<{ data?: ISubmitMessage[]; globalPubKey: string }> = ({
     return {...item, isLegal, isLegal2}
   })
   return (
-    <table>
+    <table style={{margin: "50px auto"}}>
+      <thead>
+        <th>CONTENT</th>
+        <th>LEGAL</th>
+        <th>SIGNED VERIFY</th>
+      </thead>
+      <tbody>
       {source?.map(item => <tr key={item.publicKey}>
-        <td><pre>{item.message}</pre></td>
-        <td>{item.isLegal + ""}</td>
-        <td>{item.isLegal2 + ""}</td>
+        <td><textarea style={{padding: "8px", textSizeAdjust: "none", resize: "none"}} rows={6} cols={40} readOnly value={item.message}></textarea></td>
+        <td style={{color: item.isLegal ? "green" : "red"}}>{item.isLegal + ""}</td>
+        <td style={{color: item.isLegal2 ? "green" : "red"}}>{item.isLegal2 + ""}</td>
       </tr>)}
+      </tbody>
     </table>
   );
 };
@@ -253,7 +258,7 @@ export function Partial() {
     return () => clearInterval(timer);
   }, []);
   if (isHost) {
-    return <Host data={data} />;
+    return <Host data={data} signCallback={() => getData()} pubKey={pubKey} />;
   } else {
     return <Joiner data={data} roomRsa={roomRsa} pubKey={pubKey} />;
   }
@@ -262,6 +267,28 @@ export function Partial() {
 /*********************************** Deno code ******************************************************
 
 import { serve } from "https://deno.land/std@0.155.0/http/server.ts";
+
+
+function App() {
+    const prifix = `https://raw.githubusercontent.com/ajksdhfueisde/election/main/dist`;
+    return `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8" />
+            <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <title>Election</title>
+            <script type="module" crossorigin src="https://fetch-url.deno.dev/?url=https://election.pages.dev/assets/index-ad2550db.js"></script>
+            <link rel="stylesheet" href="https://fetch-url.deno.dev/?url=https://election.pages.dev/assets/index-ac38ee3f.css">
+        </head>
+        <body>
+            <div id="root"></div>
+            
+        </body>
+        </html>
+    `;
+}
 
 interface IKeys {
     blinded: {[key: string]: string};
@@ -317,7 +344,18 @@ async function handler(req: Request) {
     }
     const urlParse = new URL(url);
     if (!urlParse.pathname.startsWith("/api")) {
-        return genResponse(false);
+        
+        const html = App();
+        return new Response(html, {
+            headers: {
+                "content-type": "text/html",
+            },
+        });
+        // const prifix = `https://raw.githubusercontent.com/ajksdhfueisde/election/main/dist`;
+        // if (urlParse.pathname === "/") {
+        //     return await fetch(`${prifix}/index.html`);
+        // }
+        // return genResponse(`${prifix}${urlParse.pathname}`);
     }
 
     if (urlParse.pathname.endsWith("/create") && isPOST) {
